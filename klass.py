@@ -41,7 +41,7 @@ class Klass(ABC, Parseable, Memorable, Importable, Kwargable):
             yield method.as_line(tabs=tabs)
 
     def parse(self, lines, **kwargs) -> str:
-        
+
 
 class BaseKlass(Klass):
     def __init__(self, **kwargs):
