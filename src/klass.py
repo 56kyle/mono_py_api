@@ -1,11 +1,11 @@
 
+from abc import ABC
 from typing import Iterable
 
-from field import Field
-from static_field import StaticField
-from method import Method
-from abc import ABC
-from mixins import (
+from .static_field import StaticField
+from .field import Field
+from .method import Method
+from .mixins import (
     Memorable,
     Importable,
     Kwargable,
@@ -14,7 +14,7 @@ from mixins import (
 )
 
 
-class Klass(ABC, Parseable, Memorable, Importable, Kwargable):
+class Klass(Importable, Kwargable):
     static_fields: list[StaticField]
     fields: list[Field]
     methods: list[Method]
@@ -26,6 +26,7 @@ class Klass(ABC, Parseable, Memorable, Importable, Kwargable):
         self.methods: list[Method] = []
         self.base_class: Klass | None = None
         self.parents: list[Klass] = []
+        self.name: str = ''
         super().__init__(**kwargs)
 
     def static_field_lines(self, tabs=1, **kwargs) -> Iterable[str]:
@@ -40,7 +41,32 @@ class Klass(ABC, Parseable, Memorable, Importable, Kwargable):
         for method in self.methods:
             yield method.as_line(tabs=tabs)
 
-    def parse(self, lines, **kwargs) -> str:
+    def as_line(self, tabs=0):
+        tabs = '\t' * tabs
+        return f'{tabs}class {self.name}'
+
+    def parse(self, **kwargs) -> None:
+        section = ''
+        for line in self.lines:
+            tabs = line.count('\t')
+            match tabs:
+                case 2:
+                    self.line = line
+                case 3:
+                    section = line
+                case 4:
+                    match section:
+                        case 'static field':
+                            self.static_fields.append(StaticField(line=line))
+                        case 'field':
+                            self.fields.append(Field(line=line))
+                        case 'method':
+                            self.methods.append(Method(line=line))
+                        case 'base_class':
+                            self.base_class = BaseKlass(line=line)
+
+    def _import(self):
+        pass
 
 
 class BaseKlass(Klass):

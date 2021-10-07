@@ -1,8 +1,8 @@
 
+from abc import ABC
 from typing import Iterable
 
-from abc import ABC
-from mixins import (
+from .mixins import (
     Memorable,
     Importable,
     Kwargable,
@@ -11,7 +11,11 @@ from mixins import (
 )
 
 
-class Field(ABC, Memorable, Kwargable, Parseable):
+class StaticField(Memorable):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def parse(self, line: str, **kwargs) -> None:
+        pass
+
 
