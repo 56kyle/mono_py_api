@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeAlias, NewType, Any, TypeVar, Iterable
+from typing import Generic, TypeAlias, NewType, Any, TypeVar, Iterable, List, AnyStr
 
 import re
 
@@ -124,9 +124,12 @@ class Importable(Memorable):
         return f'{tabs}import {self.import_path}{new_lines}'
 
 
-class Typelike(Importable, Parseable):
+class Typelike(Generic[T], Importable, Parseable):
     location: str
     return_type: str
+
+    re_generic_contents = re.compile(r"[<\[](.+)[>\]]")
+    re_shorthands = re.compile(r"([\w.&_-]+)\[\]")
 
     def __init__(self, **kwargs):
         self.location = ''
@@ -136,53 +139,39 @@ class Typelike(Importable, Parseable):
         Typelike.parse(self, line=self.line)
 
     def __str__(self):
-        return self.name
+        return f'{self.import_name}[{", ".join(str(gen) for gen in self.generics)}]'
+
+    @staticmethod
+    def find_generics(line: str) -> list[str]:
+        return re.findall(Typelike.re_generic_contents, line)
+
+    @staticmethod
+    def replace_list_shorthands(line: str) -> str:
+        return re.subn(Typelike.re_shorthands, lambda match: f'list[{match.group(1)}]', line)[0]
 
     def _import(self):
         return self.normal_import(self.location)
 
     def parse(self, line: str, **kwargs) -> None:
-        self.name = self.stripped(line).split('[')[0]
-
-
-class Genericlike(Generic[T], Typelike):
-    re_generic_contents = re.compile(r"[<\[](.+)[>\]]")
-    re_shorthands = re.compile(r"([\w.&_-]+)\[\]")
-    contents: str
-
-    def __init__(self, **kwargs):
-        self.generics: list[Typelike | Genericlike] = []
-        self.contents = ''
-        super().__init__(**kwargs)
-        Genericlike.parse(self, line=self.line)
-
-    def __str__(self):
-        return f'[{", ".join(str(gen) for gen in self.generics)}]'
-
-    @staticmethod
-    def find_generics(line: str) -> list[str]:
-        return re.findall(Genericlike.re_generic_contents, line)
-
-    @staticmethod
-    def replace_list_shorthands(line: str) -> str:
-        return re.subn(Genericlike.re_shorthands, lambda match: f'list[{match.group(1)}]', line)[0]
-
-    def parse(self, line: str, **kwargs) -> None:
+        if '<' in line:
+            self.name = self.stripped(line).split('<')[0]
+        else:
+            self.name = self.stripped(line)
         line = self.replace_list_shorthands(line)
         generics = self.find_generics(line)
-        if isinstance(generics, Iterable) and not isinstance(generics, str):
-            self.generics = [*generics]
+        if isinstance(generics, list):
+            self.generics = [Typelike(line=gen) for gen in generics]
+        elif isinstance(generics, str):
+            self.generics = [Typelike(line=generics)]
         else:
-            self.generics = [generics]
+            self.generics = []
         print(self.generics)
         super().parse(line=line, **kwargs)
-
 
 Mixins = [
     Parseable,
     Memorable,
     Importable,
     Kwargable,
-    Genericlike,
     Typelike,
 ]

@@ -8,7 +8,6 @@ from .mixins import (
     Kwargable,
     Parseable,
     Typelike,
-    Genericlike
 )
 
 
@@ -32,7 +31,7 @@ class Field(Memorable):
         match = re.match(self.re_field, line)
         self.name = match.group(1)
         if match.group(3):
-            self.return_type = Genericlike(line=(match.group(2) + match.group(3)))
+            self.return_type = Typelike(line=(match.group(2) + match.group(3)))
         else:
             self.return_type = Typelike(line=match.group(2))
 
