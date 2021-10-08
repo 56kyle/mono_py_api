@@ -9,7 +9,6 @@ from .mixins import (
     Memorable,
     Importable,
     Kwargable,
-    Childlike,
     Parseable,
 )
 
@@ -28,6 +27,7 @@ class Klass(Importable, Kwargable):
         self.parents: list[Klass] = []
         self.name: str = ''
         super().__init__(**kwargs)
+        Klass.parse(self, lines=self.lines)
 
     def static_field_lines(self, tabs=1, **kwargs) -> Iterable[str]:
         for static_field in self.static_fields:
@@ -45,9 +45,9 @@ class Klass(Importable, Kwargable):
         tabs = '\t' * tabs
         return f'{tabs}class {self.name}'
 
-    def parse(self, **kwargs) -> None:
+    def parse(self, lines: Iterable[str], **kwargs) -> None:
         section = ''
-        for line in self.lines:
+        for line in lines:
             tabs = line.count('\t')
             match tabs:
                 case 2:

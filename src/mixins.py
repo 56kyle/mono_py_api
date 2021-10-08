@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeAlias, NewType, Any, TypeVar, Iterable
 
+import re
+
 T = TypeVar('T')
 R = TypeVar('R')
 U = TypeVar('U')
@@ -17,12 +19,16 @@ class Kwargable:
             setattr(self, k, v)
 
 
-class Parseable(Kwargable):
+class Parseable(ABC, Kwargable):
     def __init__(self, lines: Iterable[str] = None, line: str = None, **kwargs):
-        super().__init__(**kwargs)
         self.lines = lines
         self.line = line
-        self.parse()
+        if self.lines is None and self.line is None:
+            raise Exception('Either line or lines must be passed on init')
+        if self.line is None:
+            self.line = [*self.lines][0]
+
+        super().__init__(**kwargs)
 
     @abstractmethod
     def parse(self, **kwargs) -> None:
@@ -42,16 +48,18 @@ class Memorable(Parseable):
     address: str
 
     def __init__(self, **kwargs):
+        self.address = ''
         super().__init__(**kwargs)
+        Memorable.parse(self, line=self.line)
 
     def as_line(self, tabs=0) -> str:
-        pass
+        return str(self)
 
-    def parse(self, **kwargs):
-        if ' : ' in self.line:
-            self.address = self.line.split(' : ')[0]
+    def parse(self, line: str, **kwargs):
+        if ' : ' in line:
+            self.address = self.stripped(line).split(' : ')[0]
         else:
-            self.address = self.line
+            self.address = self.stripped(line)
 
 
 class Importable(Memorable):
@@ -61,6 +69,7 @@ class Importable(Memorable):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        Importable.parse(self, line=self.line)
 
     def parse(self, line: str, **kwargs):
         if '.' in line:
@@ -73,7 +82,7 @@ class Importable(Memorable):
 
     @abstractmethod
     def _import(self):
-        raise NotImplementedError
+        pass
 
     def from_location(self, location: str, **kwargs) -> str:
         _from = []
@@ -115,33 +124,58 @@ class Importable(Memorable):
         return f'{tabs}import {self.import_path}{new_lines}'
 
 
-class Childlike(ABC):
-    parent: object
+class Typelike(Importable, Parseable):
+    location: str
+    return_type: str
 
-    def __init__(self, parent: object, **kwargs):
+    def __init__(self, **kwargs):
+        self.location = ''
+        self.name = ''
+        self.return_type = ''
         super().__init__(**kwargs)
-        self.parent = parent
-
-
-class Genericlike(ABC, Generic[T]):
-    def __init__(self, generics: TypeVar | list[TypeVar], **kwargs):
-        super().__init__(**kwargs)
-        if isinstance(generics, Iterable):
-            self.generics = [*generics]
-        else:
-            self.generics = [generics]
-
-
-class Typelike(ABC, Importable):
-    def __init__(self, type_name: str, **kwargs):
-        super().__init__(**kwargs)
-        self.type_name = type_name
+        Typelike.parse(self, line=self.line)
 
     def __str__(self):
-        return self.type_name
+        return self.name
 
     def _import(self):
         return self.normal_import(self.location)
+
+    def parse(self, line: str, **kwargs) -> None:
+        self.name = self.stripped(line).split('[')[0]
+
+
+class Genericlike(Generic[T], Typelike):
+    re_generic_contents = re.compile(r"[<\[](.+)[>\]]")
+    re_shorthands = re.compile(r"([\w.&_-]+)\[\]")
+    contents: str
+
+    def __init__(self, **kwargs):
+        self.generics: list[Typelike | Genericlike] = []
+        self.contents = ''
+        super().__init__(**kwargs)
+        Genericlike.parse(self, line=self.line)
+
+    def __str__(self):
+        return f'[{", ".join(str(gen) for gen in self.generics)}]'
+
+    @staticmethod
+    def find_generics(line: str) -> list[str]:
+        return re.findall(Genericlike.re_generic_contents, line)
+
+    @staticmethod
+    def replace_list_shorthands(line: str) -> str:
+        return re.subn(Genericlike.re_shorthands, lambda match: f'list[{match.group(1)}]', line)[0]
+
+    def parse(self, line: str, **kwargs) -> None:
+        line = self.replace_list_shorthands(line)
+        generics = self.find_generics(line)
+        if isinstance(generics, Iterable) and not isinstance(generics, str):
+            self.generics = [*generics]
+        else:
+            self.generics = [generics]
+        print(self.generics)
+        super().parse(line=line, **kwargs)
 
 
 Mixins = [
@@ -149,7 +183,6 @@ Mixins = [
     Memorable,
     Importable,
     Kwargable,
-    Childlike,
     Genericlike,
     Typelike,
 ]

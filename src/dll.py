@@ -6,15 +6,15 @@ from .mixins import (
     Memorable,
     Importable,
     Kwargable,
-    Childlike,
     Parseable,
 )
 
 
 class Dll(Memorable, Kwargable):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
         self.classes: [Klass] = []
+        super().__init__(**kwargs)
+        Dll.parse(self, lines=self.lines)
 
     def parse(self, lines: Iterable[str], **kwargs) -> None:
         class_section = []
