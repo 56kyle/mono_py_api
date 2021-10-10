@@ -15,7 +15,7 @@ class TestMethodMixins:
     def test_method_is_parseable(self, method: Method):
         assert method.line == '\t\t\t\t24b67a72990 : remove_ReconnectingEvent (value: System.Action<System.Collections.Generic.IEnumerable<System.Threading.Tasks.Task<System.Int32>>>) -> System.Void'
         assert method.lines is None
-        assert method.as_method() == f'\tdef {method.name}'
+        assert method.as_method() == f'\tdef remove_ReconnectingEvent(value: System.Action[System.Collections.Generic.IEnumerable[System.Threading.Tasks.Task[System.Int32]]]) -> System.Void:\n\t\tpass'
 
 
 class TestMethodFunctions:

@@ -22,12 +22,14 @@ class Method(Memorable, Parseable):
 
     def __init__(self, **kwargs):
         self.parameters: list[Typelike] = []
+        self.return_type = None
         super().__init__(**kwargs)
         Method.parse(self, line=self.line)
 
     def parse(self, line: str, **kwargs) -> None:
         self.name = re.match(self.re_method_name, line).group(1)
         match = re.match(self.re_method_param_contents, line)
+        self.return_type = Typelike(fragment=self.stripped(line).split(' -> ')[-1])
         if match:
             param_contents = match.group(1)
             if ', ' in param_contents:
@@ -43,7 +45,8 @@ class Method(Memorable, Parseable):
             f'{tabs_str}def {self.name}({self.parameters_as_str()}) -> {self.return_type}:',
             f'{tabs_str}\tpass'
         ]
-        return '\n'.join(method_lines)
+        method_str = '\n'.join(method_lines)
+        return method_str
 
     @staticmethod
     def _parameters_as_str(parameters) -> str:
