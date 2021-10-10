@@ -1,17 +1,7 @@
 
 import pytest
 from src.field import Field
-
-
-class TestField:
-    def test_simple_field(self):
-        Field(line='\t\t\t\t10 : dimensions (type: System.Int32)\n')
-
-    def test_field_with_generic_type(self):
-        Field(line='\t\t\t\t0 : Item1 (type: T1)\n')
-
-    def test_field_with_type_containing_generic(self):
-        Field(line='\t\t\t\t18 : values (type: System.Object[])\n')
+from src.typelike import Typelike
 
 
 class TestFieldMixins:
@@ -25,6 +15,18 @@ class TestFieldMixins:
     def test_field_is_parseable(self, field: Field):
         assert field.line == '\t\t\t\t10 : dimensions (type: System.Object[])\n'
         assert field.lines is None
-        assert field.as_line() == '\t\tself.dimensions: List[System.Object] = dimensions'
+        assert field.as_instance_variable() == '\t\tself.dimensions: list[System.Object] = dimensions'
+
+
+class TestFieldMethods:
+
+    def test_as_instance_variable_simple(self):
+        assert Field._as_instance_variable(name='value', return_type='System.Int32') == '\t\tself.value: System.Int32 = value'
+
+    def test_as_instance_variable_complex(self):
+        assert Field._as_instance_variable(name='__value', return_type=Typelike(fragment='System.Collections.Dictionary<System.String,System.List<System.Int32>>')) == '\t\tself.__value: System.Collections.Dictionary[System.String, System.List[System.Int32]] = __value'
+
+
+
 
 

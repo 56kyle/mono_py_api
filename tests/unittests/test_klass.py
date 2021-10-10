@@ -3,23 +3,8 @@ import pytest
 from src.klass import Klass
 
 
-
-
-class TestKlass:
-    def test_simple_klass(self):
-        Klass(line='\t\t\t\t10 : dimensions (type: System.Int32)\n')
-
-    def test_klass_with_generic_type(self):
-        Klass(line='\t\t\t\t0 : Item1 (type: T1)\n')
-
-    def test_klass_with_type_containing_generic(self):
-        Klass(line='\t\t\t\t18 : values (type: System.Object[])\n')
-
-
 class TestKlassMixins:
-    @pytest.fixture(scope='class')
-    def klass(self):
-        return Klass(lines=[
+    klass_lines = [
             '\t\t24ad3c2cac0 : Assets.Scripts.Unity.UI_New.CommonForegroundScreen\n',
             '\t\t\tstatic fields\n',
             '\t\t\t\t0 : instance (type: Assets.Scripts.Unity.UI_New.CommonForegroundScreen)\n',
@@ -57,14 +42,20 @@ class TestKlassMixins:
             '\t\t\t\t24ad3dec050 : Update () -> System.Void\n',
             '\t\t\tbase_class\n',
             '\t\t\t\t24a8b562980 : UnityEngine.MonoBehaviour\n'
-        ])
+        ]
+    @pytest.fixture(scope='class')
+    def klass(self):
+        return Klass(lines=self.klass_lines)
 
     def test_klass_is_memorable(self, klass: Klass):
-        assert klass.address == '10'
+        assert klass.address == '24ad3c2cac0'
 
     def test_klass_is_parseable(self, klass: Klass):
-        assert klass.line == '\t\t\t\t10 : dimensions (type: System.Object[])\n'
-        assert klass.lines is None
-        assert klass.as_line() == '\t\tself.dimensions: List[System.Object] = dimensions'
+        assert klass.line == '\t\t24ad3c2cac0 : Assets.Scripts.Unity.UI_New.CommonForegroundScreen\n'
+        assert klass.lines == self.klass_lines
+
+    def test_klass_to_str(self, klass: Klass):
+        print(klass)
+
 
 

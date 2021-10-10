@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeAlias, NewType, Any, TypeVar, Iterable, List, AnyStr
+from typing import Generic, TypeAlias, NewType, Any, TypeVar, Iterable, AnyStr
 
 import re
-
-T = TypeVar('T')
-R = TypeVar('R')
-U = TypeVar('U')
 
 
 class Kwargable:
@@ -20,22 +16,19 @@ class Kwargable:
 
 
 class Parseable(ABC, Kwargable):
-    def __init__(self, lines: Iterable[str] = None, line: str = None, **kwargs):
+    def __init__(self, lines: Iterable[str] = None, line: str = None, fragment: str = None, **kwargs):
         self.lines = lines
         self.line = line
-        if self.lines is None and self.line is None:
-            raise Exception('Either line or lines must be passed on init')
-        if self.line is None:
+        self.fragment = fragment
+        if self.lines is None and self.line is None and self.fragment is None:
+            raise Exception('Either line or lines or fragment must be passed on init')
+        if self.line is None and self.lines:
             self.line = [*self.lines][0]
 
         super().__init__(**kwargs)
 
     @abstractmethod
     def parse(self, **kwargs) -> None:
-        pass
-
-    @abstractmethod
-    def as_line(self, tabs=0) -> str:
         pass
 
     @staticmethod
@@ -52,9 +45,6 @@ class Memorable(Parseable):
         super().__init__(**kwargs)
         Memorable.parse(self, line=self.line)
 
-    def as_line(self, tabs=0) -> str:
-        return str(self)
-
     def parse(self, line: str, **kwargs):
         if ' : ' in line:
             self.address = self.stripped(line).split(' : ')[0]
@@ -62,116 +52,79 @@ class Memorable(Parseable):
             self.address = self.stripped(line)
 
 
-class Importable(Memorable):
+class Importable(Parseable):
     """Mixes in methods for generating import statements"""
     import_path: str
     import_name: str
+    path_to_import: str
+    path: str = ''
+    segments: list[str]
+
+    re_import_name = re.compile(r"([\w._-]+).*")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        Importable.parse(self, line=self.line)
+        Importable.parse(self, line=self.line, fragment=self.fragment)
 
-    def parse(self, line: str, **kwargs):
+    @staticmethod
+    def _parse(
+            lines: Iterable[str] = None,
+            line: str = None,
+            fragment: str = None,
+            re_import_name: re.Pattern[str] = None,
+            **kwargs
+    ):
+        if not line:
+            line = fragment
+        line = Importable.stripped(line)
+        if '<' in line:
+            line = line.split('<')[0]
         if '.' in line:
             segments = line.split('.')
         else:
             segments = [line]
+        segments_length = len(segments)
 
-        self.import_path = '.'.join(segments[:-1])
-        self.import_name = segments[-1]
+        match segments_length:
+            case 0:
+                raise Exception('Not enough segments to be importable')
+            case 1:
+                import_path = segments[0]
+                import_name = segments[0]
+                ref_name = segments[0]
+            case 2:
+                import_path = segments[0]
+                import_name = segments[-1]
+                ref_name = '.'.join(segments)
+            case _:
+                import_path = '.'.join(segments[:-1])
+                import_name = segments[-1]
+                ref_name = '.'.join(segments[-2:])
 
-    @abstractmethod
-    def _import(self):
-        pass
+        match = re.match(re_import_name, import_name)
+        if match:
+            import_name = match.group(1)
 
-    def from_location(self, location: str, **kwargs) -> str:
-        _from = []
-        if '.' in location:
-            location_list: list = location.split('.')
-        elif location == self.import_path:
-            return '.'
-        else:
-            location_list: list = [location]
+        ref_match = re.match(re_import_name, ref_name)
+        if ref_match:
+            ref_name = match.group(1)
+        path = '.'.join(segments)
+        return import_path, import_name, ref_name, segments, path
 
-        if '.' in self.import_path:
-            import_path_list: list = self.import_path.split('.')
-        else:
-            import_path_list: list = [self.import_path]
-
-        while import_path_list[0] == location_list[0]:
-            _from.append(import_path_list[0])
-            del import_path_list[0]
-            del location_list[0]
-            if not import_path_list or not location_list:
-                break
-        if not import_path_list:
-            return ''
-        return '.'.join(import_path_list)
-
-    def import_from(self, location: str, tabs=0, new_lines=1, **kwargs) -> str:
-        tabs = "\t" * tabs
-        new_lines = "\n" * new_lines
-        return f'{tabs}from {self.from_location(location)} import {self.import_path}{new_lines}'
-
-    def normal_import(self, location: str, tabs=0,
-                      new_lines=1, **kwargs) -> str:
-        tabs = "\t" * tabs
-        new_lines = "\n" * new_lines
-        from_location = self.from_location(location)
-        if from_location == '.':
-            pass
-
-        return f'{tabs}import {self.import_path}{new_lines}'
+    def parse(self, lines: Iterable[str] = None, line: str = None, fragment: str = None, **kwargs):
+        self.import_path, self.import_name, self.ref_name, self.segments, self.path = self._parse(
+            lines=lines,
+            line=line,
+            fragment=fragment,
+            re_import_name=self.re_import_name,
+            **kwargs
+        )
 
 
-class Typelike(Generic[T], Importable, Parseable):
-    location: str
-    return_type: str
-
-    re_generic_contents = re.compile(r"[<\[](.+)[>\]]")
-    re_shorthands = re.compile(r"([\w.&_-]+)\[\]")
-
-    def __init__(self, **kwargs):
-        self.location = ''
-        self.name = ''
-        self.return_type = ''
-        super().__init__(**kwargs)
-        Typelike.parse(self, line=self.line)
-
-    def __str__(self):
-        return f'{self.import_name}[{", ".join(str(gen) for gen in self.generics)}]'
-
-    @staticmethod
-    def find_generics(line: str) -> list[str]:
-        return re.findall(Typelike.re_generic_contents, line)
-
-    @staticmethod
-    def replace_list_shorthands(line: str) -> str:
-        return re.subn(Typelike.re_shorthands, lambda match: f'list[{match.group(1)}]', line)[0]
-
-    def _import(self):
-        return self.normal_import(self.location)
-
-    def parse(self, line: str, **kwargs) -> None:
-        if '<' in line:
-            self.name = self.stripped(line).split('<')[0]
-        else:
-            self.name = self.stripped(line)
-        line = self.replace_list_shorthands(line)
-        generics = self.find_generics(line)
-        if isinstance(generics, list):
-            self.generics = [Typelike(line=gen) for gen in generics]
-        elif isinstance(generics, str):
-            self.generics = [Typelike(line=generics)]
-        else:
-            self.generics = []
-        print(self.generics)
-        super().parse(line=line, **kwargs)
 
 Mixins = [
     Parseable,
     Memorable,
     Importable,
     Kwargable,
-    Typelike,
 ]

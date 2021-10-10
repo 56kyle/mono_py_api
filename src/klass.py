@@ -13,7 +13,7 @@ from .mixins import (
 )
 
 
-class Klass(Importable, Kwargable):
+class Klass(Memorable, Importable):
     static_fields: list[StaticField]
     fields: list[Field]
     methods: list[Method]
@@ -29,21 +29,55 @@ class Klass(Importable, Kwargable):
         super().__init__(**kwargs)
         Klass.parse(self, lines=self.lines)
 
+    def __str__(self) -> str:
+        return self.as_whole_class()
+
     def static_field_lines(self, tabs=1, **kwargs) -> Iterable[str]:
         for static_field in self.static_fields:
-            yield static_field.as_line(tabs=tabs)
+            yield static_field.as_class_variable(tabs=tabs)
 
     def field_lines(self, tabs=1, **kwargs) -> Iterable[str]:
         for field in self.fields:
-            yield field.as_line(tabs=tabs)
+            yield field.as_instance_variable(tabs=tabs)
 
     def method_lines(self, tabs=1, **kwargs) -> Iterable[str]:
         for method in self.methods:
-            yield method.as_line(tabs=tabs)
+            yield method.as_method(tabs=tabs)
 
-    def as_line(self, tabs=0):
-        tabs = '\t' * tabs
-        return f'{tabs}class {self.name}'
+    def as_whole_class(self, tabs=0) -> str:
+        tabs_str: str = tabs * "\t"
+        class_lines = [
+            f'{tabs_str}class {self.name}{self.get_parents_str()}:',
+            *self.static_field_lines(tabs=tabs + 1),
+            self.get_init(tabs=tabs + 1),
+        ]
+        return '\n'.join(class_lines)
+
+    def get_init(self, tabs) -> str:
+        tabs_str: str = tabs * "\t"
+        init_lines = [
+            f'{tabs_str}def __init__(self, {self.get_init_parameters()}):'
+        ]
+        for field in self.fields:
+            init_lines.append(field.as_instance_variable(tabs=tabs+1))
+        return '\n'.join(init_lines)
+
+    def get_init_parameters(self) -> str:
+        if self.fields:
+            if len(self.fields) > 1:
+                return ', '.join(field.as_parameter() for field in self.fields)
+            else:
+                return self.fields[0].as_parameter()
+        return ''
+
+    def get_parents_str(self) -> str:
+        if not self.parents:
+            return ''
+        elif len(self.parents) == 1:
+            parents_contents = self.parents[0].import_name
+        else:
+            parents_contents = ", ".join(parent.name for parent in self.parents)
+        return f'({parents_contents})'
 
     def parse(self, lines: Iterable[str], **kwargs) -> None:
         section = ''
@@ -52,6 +86,8 @@ class Klass(Importable, Kwargable):
             match tabs:
                 case 2:
                     self.line = line
+                    self.full_path = self.stripped(line).split(' : ')[1]
+                    self.name = self.import_name
                 case 3:
                     section = line
                 case 4:
