@@ -20,11 +20,11 @@ class Parseable(ABC, Kwargable):
         self.lines = lines
         self.line = line
         self.fragment = fragment
+        self._imports: list[Parseable] = []
         if self.lines is None and self.line is None and self.fragment is None:
             raise Exception('Either line or lines or fragment must be passed on init')
         if self.line is None and self.lines:
             self.line = [*self.lines][0]
-
         super().__init__(**kwargs)
 
     @abstractmethod
@@ -34,6 +34,23 @@ class Parseable(ABC, Kwargable):
     @staticmethod
     def stripped(line: str) -> str:
         return line.replace('\t', '').replace('\n', '')
+
+    @property
+    def imports(self) -> set:
+        import_strings = []
+        all_imports = []
+        for _import in self._imports:
+            if isinstance(_import, Importable):
+                _import_str = _import.as_import()
+            else:
+                _import_str = str(_import)
+            if _import_str not in import_strings:
+                import_strings.append(_import_str)
+                for imp in _import.imports:
+                    all_imports.append(imp)
+        if isinstance(self, Importable):
+            return {*[*all_imports, self]}
+        return {*all_imports}
 
 
 class Memorable(Parseable):
@@ -59,15 +76,17 @@ class Importable(Parseable):
     path_to_import: str
     path: str = ''
     segments: list[str]
+    importables: list
 
     re_import_name = re.compile(r"([\w._-]+).*")
 
     def __init__(self, **kwargs):
+        self.importables = [self]
         super().__init__(**kwargs)
         Importable.parse(self, line=self.line, fragment=self.fragment)
 
     @staticmethod
-    def _parse(
+    def _parse_imports(
             lines: Iterable[str] = None,
             line: str = None,
             fragment: str = None,
@@ -111,15 +130,17 @@ class Importable(Parseable):
         path = '.'.join(segments)
         return import_path, import_name, ref_name, segments, path
 
+    def as_import(self) -> str:
+        return f'import {self.import_path}'
+
     def parse(self, lines: Iterable[str] = None, line: str = None, fragment: str = None, **kwargs):
-        self.import_path, self.import_name, self.ref_name, self.segments, self.path = self._parse(
+        self.import_path, self.import_name, self.ref_name, self.segments, self.path = self._parse_imports(
             lines=lines,
             line=line,
             fragment=fragment,
             re_import_name=self.re_import_name,
             **kwargs
         )
-
 
 
 Mixins = [

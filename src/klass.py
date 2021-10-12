@@ -3,6 +3,7 @@ from abc import ABC
 from typing import Iterable
 
 from .static_field import StaticField
+from .typelike import Typelike
 from .field import Field
 from .method import Method
 from .mixins import (
@@ -23,8 +24,8 @@ class Klass(Memorable, Importable):
         self.static_fields: list[StaticField] = []
         self.fields: list[Field] = []
         self.methods: list[Method] = []
-        self.base_class: Klass | None = None
-        self.parents: list[Klass] = []
+        self.base_class: Typelike | None = None
+        self.parents: list[Typelike] = []
         self.name: str = ''
         super().__init__(**kwargs)
         Klass.parse(self, lines=self.lines)
@@ -50,6 +51,7 @@ class Klass(Memorable, Importable):
             f'{tabs_str}class {self.name}{self.get_parents_str()}:',
             *self.static_field_lines(tabs=tabs + 1),
             self.get_init(tabs=tabs + 1),
+            *[str(method) for method in self.methods]
         ]
         return '\n'.join(class_lines)
 
@@ -88,30 +90,27 @@ class Klass(Memorable, Importable):
                     self.line = line
                     self.full_path = self.stripped(line).split(' : ')[1]
                     self.name = self.import_name
+                    if '<' in line:
+                        parent = Typelike(fragment=self.full_path)
+                        self.parents.append(parent)
+                        self._imports.append(parent)
                 case 3:
-                    section = line
+                    section = self.stripped(line)
                 case 4:
                     match section:
-                        case 'static field':
-                            self.static_fields.append(StaticField(line=line))
-                        case 'field':
-                            self.fields.append(Field(line=line))
-                        case 'method':
-                            self.methods.append(Method(line=line))
+                        case 'static fields':
+                            new_static = StaticField(line=line)
+                            self.static_fields.append(new_static)
+                            self._imports.append(new_static)
+                        case 'fields':
+                            new_field = Field(line=line)
+                            self.fields.append(new_field)
+                            self._imports.append(new_field)
+                        case 'methods':
+                            new_method = Method(line=line)
+                            self.methods.append(new_method)
+                            self._imports.append(new_method)
                         case 'base_class':
-                            self.base_class = BaseKlass(line=line)
-
-    def _import(self):
-        pass
-
-
-class BaseKlass(Klass):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.static_fields = []
-        self.fields = []
-        self.methods = []
-        self.base_class = None
-
-
+                            self.base_class = Typelike(fragment=self.stripped(line).split(' : ')[-1])
+                            self._imports.append(self.base_class)
 

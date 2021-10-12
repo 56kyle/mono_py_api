@@ -22,22 +22,35 @@ class Method(Memorable, Parseable):
 
     def __init__(self, **kwargs):
         self.parameters: list[Typelike] = []
-        self.return_type = None
         super().__init__(**kwargs)
         Method.parse(self, line=self.line)
+        for param in self.parameters:
+            self._imports.append(param)
+        self._imports.append(self.return_type)
+
+    def __str__(self):
+        return self.as_method()
 
     def parse(self, line: str, **kwargs) -> None:
-        self.name = re.match(self.re_method_name, line).group(1)
-        match = re.match(self.re_method_param_contents, line)
-        self.return_type = Typelike(fragment=self.stripped(line).split(' -> ')[-1])
+        self.name, self.return_type, self.parameters = self._parse(line=line, **kwargs)
+
+    @staticmethod
+    def _parse(line: str, **kwargs) -> (str, Typelike, list[Parameter]):
+        name = re.match(Method.re_method_name, line).group(1)
+        match = re.match(Method.re_method_param_contents, line)
+        return_type = Typelike(fragment=Method.stripped(line).split(' -> ')[-1])
         if match:
             param_contents = match.group(1)
-            if ', ' in param_contents:
-                self.parameters = [Parameter(fragment=param) for param in param_contents.split(', ')]
+            if param_contents:
+                if ', ' in param_contents:
+                    parameters = [Parameter(fragment=param) for param in param_contents.split(', ')]
+                else:
+                    parameters = [Parameter(fragment=param_contents)]
             else:
-                self.parameters = [Parameter(fragment=param_contents)]
+                parameters = []
         else:
-            self.parameters = []
+            parameters = []
+        return name, return_type, parameters
 
     def as_method(self, tabs=1) -> str:
         tabs_str = '\t' * tabs

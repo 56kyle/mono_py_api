@@ -10,11 +10,26 @@ from .mixins import (
 )
 
 
-class Dll(Memorable, Kwargable):
+class Dll(Memorable):
     def __init__(self, **kwargs):
         self.classes: [Klass] = []
         super().__init__(**kwargs)
         Dll.parse(self, lines=self.lines)
+
+    def __str__(self):
+        class_lines = [str(klass) for klass in self.classes]
+        all_imports = [_import for _import in self.imports]
+        import_lines = set()
+        for imp in all_imports:
+            if isinstance(imp, Importable):
+                import_lines.add(imp.as_import())
+
+        dll_lines = [
+            *import_lines,
+            *class_lines,
+        ]
+
+        return '\n'.join(dll_lines)
 
     def parse(self, lines: Iterable[str], **kwargs) -> None:
         class_section = []
@@ -24,8 +39,10 @@ class Dll(Memorable, Kwargable):
                 self.line = line
             elif tabs == 2:
                 if class_section:
-                    self.classes.append(Klass(lines=class_section))
-                class_section = [self.line]
+                    new_klass = Klass(lines=class_section)
+                    self.classes.append(new_klass)
+                    self._imports.append(new_klass)
+                class_section = [line]
             else:
                 class_section.append(line)
 

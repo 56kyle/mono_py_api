@@ -48,17 +48,34 @@ class Typelike(Generic[T], Importable, Parseable):
         else:
             return fragment
 
-    def parse(self, fragment: str = None, lines: Iterable[str] = None, line: str = None, **kwargs) -> None:
-        stripped = self.stripped(fragment)
-        stripped = self.replace_list_shorthands(stripped)
-        name_match = re.match(self.re_generic_name, stripped)
-        contents_match = re.match(self.re_generic_contents, stripped)
+    @staticmethod
+    def _parse(fragment: str = None, lines: Iterable[str] = None, line: str = None, **kwargs) -> (str, list):
+        if not fragment:
+            fragment = line
+        stripped = Typelike.stripped(fragment)
+        stripped = Typelike.replace_list_shorthands(stripped)
+        name_match = re.match(Typelike.re_generic_name, stripped)
+        contents_match = re.match(Typelike.re_generic_contents, stripped)
 
-        self.name = name_match.group(1)
+        name = name_match.group(1)
         if contents_match:
             generics_contents = contents_match.group(1)
-            self.generics = [Typelike(fragment=gen) for gen in re.findall(self.re_generic, generics_contents)]
+            generics = [Typelike(fragment=gen) for gen in re.findall(Typelike.re_generic, generics_contents)]
         else:
-            self.generics = []
+            generics = []
 
-        # generics_list is at most one item long, just keeping it this way so regex isn't being a pain
+        return name, generics
+
+    def parse(self, fragment: str = None, lines: Iterable[str] = None, line: str = None, **kwargs) -> None:
+        self.name, self.generics = self._parse(
+            fragment=fragment,
+            lines=lines,
+            line=line,
+            **kwargs
+        )
+        for gen in self.generics:
+            self._imports.append(gen)
+
+
+
+

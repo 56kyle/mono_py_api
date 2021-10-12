@@ -11,6 +11,7 @@ class Parameter(Parseable):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         Parameter.parse(self, fragment=self.fragment)
+        self._imports.append(self.return_type)
 
     def __str__(self):
         return f'{self.name}: {self.return_type}'

@@ -35,6 +35,13 @@ class TestMethodFunctions:
             Parameter(fragment='foo: System.String')
         ]) == 'foo: System.Int32, foo: System.Boolean, foo: System.String'
 
+    def test_multiple_compound_parameters_as_str(self):
+        assert Method._parameters_as_str([
+            Parameter(fragment='foo: System.Numbers.Int32'),
+            Parameter(fragment='bar: System.Values.Boolean'),
+            Parameter(fragment='baz: System.Collections.Enumerable.Dictionary')
+        ]) == 'foo: System.Numbers.Int32, bar: System.Values.Boolean, baz: System.Collections.Enumerable.Dictionary'
+
     def test_multiple_generic_parameters_as_str(self):
         assert Method._parameters_as_str([
             Parameter(fragment='foo: System.List<System.Int32>'),
