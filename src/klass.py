@@ -1,4 +1,4 @@
-
+import os
 from abc import ABC
 from typing import Iterable
 
@@ -91,6 +91,9 @@ class Klass(Memorable, Importable):
                     self.line = line
                     self.full_path = self.stripped(line).split(' : ')[1]
                     self.name = self.import_name
+                    if not self.name:
+                        print(lines)
+                        print(line)
                     if '<' in line:
                         self.as_type = Typelike(fragment=self.full_path)
                         self._imports.append(self.as_type)
@@ -114,4 +117,33 @@ class Klass(Memorable, Importable):
                             base_class: Typelike = Typelike(fragment=self.stripped(line).split(' : ')[-1])
                             self.base_class = base_class
                             self._imports.append(base_class)
+
+    def gen_api(self) -> None:
+        base_path = os.path.join(r'C:\Users\56kyl\source\repos\mono_py_api', 'data')
+        directory_path = os.path.join(base_path, *self.import_path.split('.'))
+        if '.' in directory_path:
+            directory_path_segments = directory_path.split('\\')
+        else:
+            directory_path_segments = [directory_path]
+        del directory_path_segments[-1]
+        init_path = os.path.join(*directory_path_segments, '__init__.py')
+        current_dir = base_path
+        for segment in directory_path_segments:
+            current_dir = os.path.join(current_dir, segment)
+            try:
+                os.mkdir(current_dir)
+            except Exception as e:
+                print(e)
+            curr_init = os.path.join(current_dir, '__init__.py')
+            if not os.path.exists(curr_init):
+                with open(curr_init, 'w'):
+                    pass
+        file_lines = [
+            *{imp.as_import() for imp in self.imports},
+            '\n',
+            str(self)
+        ]
+        with open(init_path, 'w') as file:
+            file.write('\n'.join(file_lines))
+
 

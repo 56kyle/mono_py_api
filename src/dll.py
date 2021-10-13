@@ -9,9 +9,12 @@ from .mixins import (
     Parseable,
 )
 
+import os
+
 
 class Dll(Memorable):
     def __init__(self, **kwargs):
+        self.name: str = ''
         self.classes: [Klass] = []
         super().__init__(**kwargs)
         Dll.parse(self, lines=self.lines)
@@ -22,7 +25,8 @@ class Dll(Memorable):
         import_lines = set()
         for imp in all_imports:
             if isinstance(imp, Importable):
-                import_lines.add(imp.as_import())
+                if self.name not in imp.name:
+                    import_lines.add(imp.as_import())
 
         dll_lines = [
             *import_lines,
@@ -45,6 +49,13 @@ class Dll(Memorable):
                 class_section = [line]
             else:
                 class_section.append(line)
+        self.name = self.stripped(self.line).split(' : ')[-1].replace('.dll', '')
+
+    def gen_api(self) -> None:
+        for klass in self.classes:
+            klass.gen_api()
+
+
 
 
 

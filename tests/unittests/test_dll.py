@@ -1,6 +1,10 @@
-import pytest
-from src.dll import Dll
+import importlib
+
 from .dll_data import dll_str
+from src.dll import Dll
+
+import os
+import pytest
 
 
 class TestDll:
@@ -19,11 +23,8 @@ class TestDll:
         assert dll.line == self.dll_lines[0]
         assert dll.lines == self.dll_lines
 
-    def test_dll_str(self, dll):
-        print(dll.imports)
-        print(str(dll))
-        with open('./test.py', 'w') as file:
-            file.write(str(dll))
+    def test_dll_generation(self, dll, unittest_data):
+        dll.gen_api()
 
 
 

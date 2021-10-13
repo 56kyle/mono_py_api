@@ -46,11 +46,14 @@ class Field(Memorable, Parseable):
 
     @staticmethod
     def _parse(line: str, **kwargs) -> [str, Typelike]:
-        match = re.match(Field.re_field, line)
         if '->' in line:
             name = re.match(Field.re_field_name, line).group(1)
             return_type = Typelike(fragment=Field.stripped(line).split(' -> ')[-1])
             return name, return_type
+        match = re.match(Field.re_field, line)
+        if not match:
+            print(line)
+            return '', Typelike(fragment=line)
         name = match.group(1)
         if match.group(3):
             return_type = Typelike(fragment=(match.group(2) + match.group(3)))

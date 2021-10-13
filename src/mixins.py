@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from keyword import kwlist
 from typing import Generic, TypeAlias, NewType, Any, TypeVar, Iterable, AnyStr
 
 import re
@@ -26,6 +27,13 @@ class Parseable(ABC, Kwargable):
         if self.line is None and self.lines:
             self.line = [*self.lines][0]
         super().__init__(**kwargs)
+        try:
+            for keyword in kwlist:
+                if self.name == keyword:
+                    print(self.name)
+                    self.name = '_' + keyword
+        except AttributeError as e:
+            pass
 
     @abstractmethod
     def parse(self, **kwargs) -> None:
@@ -44,7 +52,7 @@ class Parseable(ABC, Kwargable):
                 _import_str = _import.as_import()
             else:
                 _import_str = str(_import)
-            if _import_str not in import_strings:
+            if _import_str not in import_strings and not _import_str.endswith('.dll'):
                 import_strings.append(_import_str)
                 for imp in _import.imports:
                     all_imports.append(imp)
