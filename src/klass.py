@@ -24,6 +24,7 @@ class Klass(Memorable, Importable):
         self.static_fields: list[StaticField] = []
         self.fields: list[Field] = []
         self.methods: list[Method] = []
+        self.as_type: Typelike | None = None
         self.base_class: Typelike | None = None
         self.parents: list[Typelike] = []
         self.name: str = ''
@@ -91,9 +92,8 @@ class Klass(Memorable, Importable):
                     self.full_path = self.stripped(line).split(' : ')[1]
                     self.name = self.import_name
                     if '<' in line:
-                        parent = Typelike(fragment=self.full_path)
-                        self.parents.append(parent)
-                        self._imports.append(parent)
+                        self.as_type = Typelike(fragment=self.full_path)
+                        self._imports.append(self.as_type)
                 case 3:
                     section = self.stripped(line)
                 case 4:
@@ -111,6 +111,7 @@ class Klass(Memorable, Importable):
                             self.methods.append(new_method)
                             self._imports.append(new_method)
                         case 'base_class':
-                            self.base_class = Typelike(fragment=self.stripped(line).split(' : ')[-1])
-                            self._imports.append(self.base_class)
+                            base_class: Typelike = Typelike(fragment=self.stripped(line).split(' : ')[-1])
+                            self.base_class = base_class
+                            self._imports.append(base_class)
 

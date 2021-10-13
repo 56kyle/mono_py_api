@@ -26,7 +26,7 @@ class Dll(Memorable):
 
         dll_lines = [
             *import_lines,
-            *class_lines,
+            '\n\n'.join(class_lines),
         ]
 
         return '\n'.join(dll_lines)

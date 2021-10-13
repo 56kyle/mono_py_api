@@ -10,7 +10,6 @@ U = TypeVar('U')
 
 class Typelike(Generic[T], Importable, Parseable):
     location: str
-    return_type: str
 
     #re_generic_contents = re.compile(r"<([\w.,<>\[\]_&-]+)>.*")
     re_generic_contents = re.compile(r"[\w.&_-]+<(.+)>")
@@ -22,7 +21,6 @@ class Typelike(Generic[T], Importable, Parseable):
         self.generics = []
         self.location = ''
         self.name = ''
-        self.return_type = ''
         super().__init__(**kwargs)
         self.line = self.replace_list_shorthands(self.line)
         Typelike.parse(self, fragment=self.fragment)

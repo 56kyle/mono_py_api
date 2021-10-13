@@ -16,7 +16,7 @@ class Field(Memorable, Parseable):
     name: str
     return_type: Typelike
     re_field = re.compile(r".* : ([_&\w.-]+) \(type: ([^<\[)]+)([^)]+)?\)\n")
-    re_field_name = re.compile(r".* : ([_&\w.-]+) \(.*")
+    re_field_name = re.compile(r".* : ([_&\w.-]+).*")
 
     def __init__(self, **kwargs):
         self.name = ''
@@ -46,10 +46,8 @@ class Field(Memorable, Parseable):
 
     @staticmethod
     def _parse(line: str, **kwargs) -> [str, Typelike]:
-        if 'type:' not in line:
-            return
         match = re.match(Field.re_field, line)
-        if '()' in line:
+        if '->' in line:
             name = re.match(Field.re_field_name, line).group(1)
             return_type = Typelike(fragment=Field.stripped(line).split(' -> ')[-1])
             return name, return_type

@@ -27,6 +27,7 @@ class StaticField(Field):
             return self.as_class_variable()
 
     def parse(self, line: str, **kwargs) -> None:
+        print(line)
         if '->' in line:
             self.name, self.return_type, self.parameters = Method._parse(line=line, **kwargs)
         else:

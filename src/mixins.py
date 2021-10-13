@@ -95,6 +95,9 @@ class Importable(Parseable):
     ):
         if not line:
             line = fragment
+        line = line.replace('[]', '')
+        if ' : ' in line:
+            line = line.split(' : ')[1]
         line = Importable.stripped(line)
         if '<' in line:
             line = line.split('<')[0]

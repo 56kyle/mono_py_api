@@ -50,7 +50,12 @@ class Method(Memorable, Parseable):
                 parameters = []
         else:
             parameters = []
+        name = Method.remove_dot(name)
         return name, return_type, parameters
+
+    @staticmethod
+    def remove_dot(name: str) -> str:
+        return name.replace('.', '')
 
     def as_method(self, tabs=1) -> str:
         tabs_str = '\t' * tabs
