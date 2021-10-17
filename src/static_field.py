@@ -26,6 +26,16 @@ class StaticField(Field):
         else:
             return self.as_class_variable()
 
+    @staticmethod
+    def _parameters_as_str(parameters) -> str:
+        if parameters:
+            if len(parameters) > 1:
+                return 'cls, ' + ', '.join(str(param) for param in parameters)
+            else:
+                return 'cls, ' + str(parameters[0])
+        else:
+            return 'cls'
+
     def parse(self, line: str, **kwargs) -> None:
         if '->' in line:
             self.name, self.return_type, self.parameters = Method._parse(line=line, **kwargs)
@@ -37,7 +47,13 @@ class StaticField(Field):
         return f'{tabs}{self.name}: {self.return_type}'
 
     def as_class_method(self, tabs=1) -> str:
-        return ''
+        tabs = '\t' * tabs
+        method_lines = [
+            f'{tabs}@classmethod',
+            f'{tabs}def {self.name}({self._parameters_as_str(self.parameters)}) -> {self.return_type}:',
+            f'{tabs}\tpass'
+        ]
+        return '\n'.join(method_lines)
 
 
 

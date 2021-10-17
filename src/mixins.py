@@ -87,6 +87,7 @@ class Importable(Parseable):
     importables: list
 
     re_import_name = re.compile(r"([\w._-]+).*")
+    re_delegate = re.compile(r"<(.+)>([\w.&_-]+)")
 
     def __init__(self, **kwargs):
         self.importables = [self]
@@ -107,7 +108,12 @@ class Importable(Parseable):
         if ' : ' in line:
             line = line.split(' : ')[1]
         line = Importable.stripped(line)
-        if '<' in line:
+        if line.split('.')[-1].startswith('<'):
+            line_segments = line.split('.')
+            del line_segments[-1]
+            match = re.match(Importable.re_delegate, line.split('.')[-1])
+            line = '.'.join([*line_segments, f'{match.group(2)}<{match.group(1)}>'])
+        elif '<' in line:
             line = line.split('<')[0]
         if '.' in line:
             segments = line.split('.')
@@ -142,7 +148,7 @@ class Importable(Parseable):
         return import_path, import_name, ref_name, segments, path
 
     def as_import(self) -> str:
-        return f'import {self.import_path}'
+        return f'import {self.segments[0]}'
 
     def parse(self, lines: Iterable[str] = None, line: str = None, fragment: str = None, **kwargs):
         self.import_path, self.import_name, self.ref_name, self.segments, self.path = self._parse_imports(

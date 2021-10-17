@@ -23,8 +23,8 @@ class TestDll:
         assert dll.line == self.dll_lines[0]
         assert dll.lines == self.dll_lines
 
-    def test_dll_generation(self, dll, unittest_data):
-        dll.gen_api()
+    def test_dll_str(self, dll, unittest_data):
+        assert str(dll) == ''
 
 
 

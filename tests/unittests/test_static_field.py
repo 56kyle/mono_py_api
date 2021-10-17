@@ -15,5 +15,7 @@ class TestStaticFieldMixins:
         assert static_field.line == '\t\t\t\t8 : encoders (type: System.Collections.Generic.Dictionary<System.Int32,Assets.Scripts.Unity.Network.Btd6MessageEncoder>)\n'
         assert static_field.lines is None
         assert static_field.as_class_variable() == '\tencoders: System.Collections.Generic.Dictionary[System.Int32, Assets.Scripts.Unity.Network.Btd6MessageEncoder]'
+        print(static_field.as_class_method())
+        assert static_field.as_class_method() == '\t@classmethod\n\tdef encoders(cls) -> System.Collections.Generic.Dictionary[System.Int32, Assets.Scripts.Unity.Network.Btd6MessageEncoder]:\n\t\tpass'
 
 

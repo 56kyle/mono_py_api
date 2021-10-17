@@ -51,19 +51,4 @@ class Dll(Memorable):
                 class_section.append(line)
         self.name = self.stripped(self.line).split(' : ')[-1].replace('.dll', '')
 
-    def gen_api(self) -> None:
-        for klass in self.classes:
-            klass.gen_api()
-
-
-
-
-
-
-
-
-
-
-
-
 

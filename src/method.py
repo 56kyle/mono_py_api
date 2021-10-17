@@ -70,11 +70,11 @@ class Method(Memorable, Parseable):
     def _parameters_as_str(parameters) -> str:
         if parameters:
             if len(parameters) > 1:
-                return ', '.join(str(param) for param in parameters)
+                return 'self, ' + ', '.join(str(param) for param in parameters)
             else:
-                return str(parameters[0])
+                return 'self, ' + str(parameters[0])
         else:
-            return ''
+            return 'self'
 
     def parameters_as_str(self) -> str:
         return self._parameters_as_str(self.parameters)

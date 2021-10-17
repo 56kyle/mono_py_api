@@ -54,13 +54,19 @@ class Klass(Memorable, Importable):
             self.get_init(tabs=tabs + 1),
             *[str(method) for method in self.methods]
         ]
-        return '\n'.join(class_lines)
+        return '\n\n'.join(class_lines)
 
     def get_init(self, tabs) -> str:
         tabs_str: str = tabs * "\t"
-        init_lines = [
-            f'{tabs_str}def __init__(self, {self.get_init_parameters()}):'
-        ]
+        if self.get_init_parameters():
+            init_lines = [
+                f'{tabs_str}def __init__(self, {self.get_init_parameters()}):'
+            ]
+        else:
+            init_lines = [
+                f'{tabs_str}def __init__(self):',
+                f'{tabs_str}\tpass',
+            ]
         for field in self.fields:
             init_lines.append(field.as_instance_variable(tabs=tabs+1))
         return '\n'.join(init_lines)
@@ -117,33 +123,5 @@ class Klass(Memorable, Importable):
                             base_class: Typelike = Typelike(fragment=self.stripped(line).split(' : ')[-1])
                             self.base_class = base_class
                             self._imports.append(base_class)
-
-    def gen_api(self) -> None:
-        base_path = os.path.join(r'C:\Users\56kyl\source\repos\mono_py_api', 'data')
-        directory_path = os.path.join(base_path, *self.import_path.split('.'))
-        if '.' in directory_path:
-            directory_path_segments = directory_path.split('\\')
-        else:
-            directory_path_segments = [directory_path]
-        del directory_path_segments[-1]
-        init_path = os.path.join(*directory_path_segments, '__init__.py')
-        current_dir = base_path
-        for segment in directory_path_segments:
-            current_dir = os.path.join(current_dir, segment)
-            try:
-                os.mkdir(current_dir)
-            except Exception as e:
-                print(e)
-            curr_init = os.path.join(current_dir, '__init__.py')
-            if not os.path.exists(curr_init):
-                with open(curr_init, 'w'):
-                    pass
-        file_lines = [
-            *{imp.as_import() for imp in self.imports},
-            '\n',
-            str(self)
-        ]
-        with open(init_path, 'w') as file:
-            file.write('\n'.join(file_lines))
 
 
