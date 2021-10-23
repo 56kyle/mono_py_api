@@ -38,14 +38,6 @@ class Klass(Memorable, Importable):
         for static_field in self.static_fields:
             yield static_field.as_class_variable(tabs=tabs)
 
-    def field_lines(self, tabs=1, **kwargs) -> Iterable[str]:
-        for field in self.fields:
-            yield field.as_instance_variable(tabs=tabs)
-
-    def method_lines(self, tabs=1, **kwargs) -> Iterable[str]:
-        for method in self.methods:
-            yield method.as_method(tabs=tabs)
-
     def as_whole_class(self, tabs=0) -> str:
         tabs_str: str = tabs * "\t"
         class_lines = [

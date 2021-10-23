@@ -57,10 +57,10 @@ class Method(Memorable, Parseable):
     def remove_dot(name: str) -> str:
         return name.replace('.', '')
 
-    def as_method(self, tabs=1) -> str:
+    def _as_method(name: str, return_type: Typelike, parameters: list[Parameter], tabs=1) -> str:
         tabs_str = '\t' * tabs
         method_lines = [
-            f'{tabs_str}def {self.name}({self.parameters_as_str()}) -> {self.return_type}:',
+            f'{tabs_str}def {name}({Method._parameters_as_str(parameters)}) -> {return_type}:',
             f'{tabs_str}\tpass'
         ]
         method_str = '\n'.join(method_lines)

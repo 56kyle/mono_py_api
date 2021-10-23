@@ -52,12 +52,15 @@ class Parseable(ABC, Kwargable):
                 _import_str = _import.as_import()
             else:
                 _import_str = str(_import)
+
             if _import_str not in import_strings and not _import_str.endswith('.dll'):
                 import_strings.append(_import_str)
                 for imp in _import.imports:
                     all_imports.append(imp)
+
         if isinstance(self, Importable):
             return {*[*all_imports, self]}
+
         return {*all_imports}
 
 
@@ -102,11 +105,12 @@ class Importable(Parseable):
             re_import_name: re.Pattern[str] = None,
             **kwargs
     ):
-        if not line:
-            line = fragment
+        line = fragment if not line else fragment
         line = line.replace('[]', '')
+
         if ' : ' in line:
             line = line.split(' : ')[1]
+
         line = Importable.stripped(line)
         if line.split('.')[-1].startswith('<'):
             line_segments = line.split('.')
@@ -115,12 +119,13 @@ class Importable(Parseable):
             line = '.'.join([*line_segments, f'{match.group(2)}<{match.group(1)}>'])
         elif '<' in line:
             line = line.split('<')[0]
+
         if '.' in line:
             segments = line.split('.')
         else:
             segments = [line]
-        segments_length = len(segments)
 
+        segments_length = len(segments)
         match segments_length:
             case 0:
                 raise Exception('Not enough segments to be importable')
@@ -147,10 +152,7 @@ class Importable(Parseable):
         path = '.'.join(segments)
         return import_path, import_name, ref_name, segments, path
 
-    def as_import(self) -> str:
-        return f'import {self.segments[0]}'
-
-    def parse(self, lines: Iterable[str] = None, line: str = None, fragment: str = None, **kwargs):
+    def parse(self, lines: Iterable[str] = None, line: str = None, fragment: str = None, **kwargs) -> None:
         self.import_path, self.import_name, self.ref_name, self.segments, self.path = self._parse_imports(
             lines=lines,
             line=line,
@@ -158,6 +160,13 @@ class Importable(Parseable):
             re_import_name=self.re_import_name,
             **kwargs
         )
+
+    @staticmethod
+    def _as_import(segments: list[str]) -> str:
+        return f'import {segments[0]}'
+
+    def as_import(self) -> str:
+        return self._as_import(self.segments)
 
 
 Mixins = [

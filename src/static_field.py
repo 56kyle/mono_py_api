@@ -6,6 +6,7 @@ from typing import Iterable
 
 from .field import Field
 from .method import Method
+from .parameter import Parameter
 from .mixins import (
     Memorable,
     Importable,
@@ -44,12 +45,12 @@ class StaticField(Memorable):
         else:
             return 'cls'
 
-    def as_parameter(self) -> str:
-        return self._as_parameter(self.name, self.return_type)
-
     @staticmethod
     def _as_parameter(name: str, return_type: Typelike) -> str:
         return f'{name}: {return_type}'
+
+    def as_parameter(self) -> str:
+        return self._as_parameter(self.name, self.return_type)
 
     def parse(self, line: str, **kwargs) -> None:
         if '->' in line:
@@ -57,18 +58,32 @@ class StaticField(Memorable):
         else:
             self.name, self.return_type = Field._parse(line=line, **kwargs)
 
-    def as_class_variable(self, tabs=1) -> str:
+    @staticmethod
+    def _as_class_variable(name: str, return_type: Typelike, tabs=1) -> str:
         tabs = '\t' * tabs
-        return f'{tabs}{self.name}: {self.return_type}'
+        return f'{tabs}{name}: {return_type}'
 
-    def as_class_method(self, tabs=1) -> str:
+    def as_class_variable(self, tabs=1) -> str:
+        return self._as_class_variable(
+            name=self.name,
+            return_type=self.return_type,
+            tabs=tabs
+        )
+
+    @staticmethod
+    def _as_class_method(name: str, return_type: Typelike, parameters: list[Parameter], tabs=1) -> str:
         tabs = '\t' * tabs
         method_lines = [
             f'{tabs}@classmethod',
-            f'{tabs}def {self.name}({self._parameters_as_str(self.parameters)}) -> {self.return_type}:',
+            f'{tabs}def {name}({StaticField._parameters_as_str(parameters)}) -> {return_type}:',
             f'{tabs}\tpass'
         ]
         return '\n'.join(method_lines)
 
-
-
+    def as_class_method(self, tabs=1) -> str:
+        return self._as_class_method(
+            name=self.name,
+            return_type=self.return_type,
+            parameters=self.parameters,
+            tabs=tabs
+        )
