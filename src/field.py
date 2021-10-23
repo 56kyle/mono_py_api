@@ -47,6 +47,10 @@ class Field(Memorable, Parseable):
     @staticmethod
     def _parse(line: str, **kwargs) -> [str, Typelike]:
         match = re.match(Field.re_field, line)
+        try:
+            match.group(1)
+        except AttributeError:
+            x = 3
         name = match.group(1)
         if match.group(3):
             return_type = Typelike(fragment=(match.group(2) + match.group(3)))

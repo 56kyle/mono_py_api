@@ -1,4 +1,6 @@
 
+import re
+
 from abc import ABC
 from typing import Iterable
 
@@ -10,9 +12,15 @@ from .mixins import (
     Kwargable,
     Parseable,
 )
+from .typelike import Typelike
 
 
-class StaticField(Field):
+class StaticField(Memorable):
+    name: str
+    return_type: Typelike
+    re_field = re.compile(r".* : ([_&\w.-]+) \(type: ([^<\[)]+)([^)]+)?\)\n")
+    re_field_name = re.compile(r".* : ([_&\w.-]+).*")
+
     def __init__(self, **kwargs):
         self.parameters = []
         super().__init__(**kwargs)
@@ -35,6 +43,13 @@ class StaticField(Field):
                 return 'cls, ' + str(parameters[0])
         else:
             return 'cls'
+
+    def as_parameter(self) -> str:
+        return self._as_parameter(self.name, self.return_type)
+
+    @staticmethod
+    def _as_parameter(name: str, return_type: Typelike) -> str:
+        return f'{name}: {return_type}'
 
     def parse(self, line: str, **kwargs) -> None:
         if '->' in line:
